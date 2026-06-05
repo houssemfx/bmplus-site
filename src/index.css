@@ -147,39 +147,79 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .nav.scrolled .btn-nav-cta { background: var(--ink); color: var(--ivory); }
 .nav.scrolled .btn-nav-cta:hover { background: var(--brass-deep); color: var(--ivory); }
 
-/* ---------- Hero ---------- */
-.hero {
-  position: relative; min-height: 100svh;
-  display: grid; align-items: end;
-  padding: 0 var(--pad) clamp(3rem, 6vw, 5rem);
-  overflow: hidden;
+/* ---------- Hero — 3D Studio ---------- */
+.hero-scroll-container {
+  position: relative;
+  height: 280vh;
 }
-.hero-video {
-  position: absolute; inset: 0; width: 100%; height: 100%;
-  object-fit: cover; z-index: -2;
+.hero-sticky {
+  position: sticky; top: 0;
+  height: 100svh; overflow: hidden;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
 }
-.hero::after {
-  content: ''; position: absolute; inset: 0; z-index: -1;
-  background: linear-gradient(to top, rgba(20,18,16,0.78) 0%, rgba(20,18,16,0.28) 45%, rgba(20,18,16,0.15) 100%);
+.hero-studio-bg {
+  position: absolute; inset: 0; z-index: 0;
+  background:
+    radial-gradient(ellipse 70% 60% at 75% 55%, #2a2520 0%, transparent 65%),
+    radial-gradient(ellipse 50% 80% at 20% 50%, #1c1814 0%, transparent 60%),
+    linear-gradient(160deg, #111010 0%, #1a1714 40%, #0e0d0c 100%);
 }
-.hero-inner { max-width: 1320px; margin: 0 auto; width: 100%; color: var(--ivory); }
-.hero h1 {
-  font-size: clamp(3rem, 9vw, 8.5rem);
-  margin: 1.4rem 0 1.8rem;
+/* subtle floor vignette */
+.hero-studio-bg::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 90% 40% at 50% 100%, rgba(0,0,0,0.55), transparent 70%);
+}
+.hero-text-side {
+  position: relative; z-index: 2;
+  display: flex; flex-direction: column; justify-content: center;
+  padding: clamp(5rem,8vw,9rem) clamp(2rem,5vw,6rem) clamp(3rem,5vw,5rem) var(--pad);
+  max-width: 640px;
+}
+.hero-canvas-side {
+  position: relative; z-index: 1;
+  width: 100%; height: 100%;
+}
+.hero-canvas-side canvas { width: 100% !important; height: 100% !important; }
+
+.hero-eyebrow { color: var(--brass) !important; margin-bottom: 1.2rem; }
+.hero-h1 {
+  font-family: var(--font-display);
+  font-weight: 300; line-height: 1.02; letter-spacing: -0.02em;
+  font-size: clamp(2.8rem, 5.5vw, 6.5rem);
+  color: var(--ivory);
+  margin: 0 0 1.6rem;
   max-width: 14ch;
 }
-.hero .eyebrow { color: #e8c9a0; }
-.hero p {
-  max-width: 46ch; font-size: clamp(1rem, 1.5vw, 1.2rem);
-  color: rgba(244,241,234,0.82); font-weight: 300; line-height: 1.65;
+.hero-h1 .italic { font-style: italic; color: var(--brass); }
+.hero-p {
+  max-width: 44ch; font-size: clamp(0.95rem, 1.4vw, 1.1rem);
+  color: rgba(244,241,234,0.7); font-weight: 300; line-height: 1.7;
 }
-.hero-actions { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 2.6rem; }
-.hero-actions .btn-ghost { border-color: rgba(244,241,234,0.4); color: var(--ivory); }
-.hero-actions .btn-ghost:hover { background: var(--ivory); color: var(--ink); border-color: var(--ivory); }
+.hero-actions { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 2.4rem; }
+.hero-ghost { border-color: rgba(244,241,234,0.3) !important; color: var(--ivory) !important; }
+.hero-ghost:hover { background: var(--ivory) !important; color: var(--ink) !important; border-color: var(--ivory) !important; }
+
+/* Phase progress dots */
+.hero-dots { display: flex; gap: 0.6rem; margin-top: 2.4rem; }
+.hero-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: rgba(244,241,234,0.25);
+  transition: background 0.4s, transform 0.4s;
+}
+.hero-dot.active { background: var(--brass); transform: scale(1.4); }
+
 .scroll-hint {
-  position: absolute; bottom: 2rem; right: var(--pad); z-index: 1;
+  position: absolute; bottom: 2rem; right: var(--pad); z-index: 3;
   writing-mode: vertical-rl; font-size: 0.68rem; letter-spacing: 0.3em;
-  text-transform: uppercase; color: rgba(244,241,234,0.6);
+  text-transform: uppercase; color: rgba(244,241,234,0.4);
+}
+@media (max-width: 860px) {
+  .hero-sticky { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+  .hero-text-side { padding: 7rem var(--pad) 2rem; justify-content: flex-end; }
+  .hero-canvas-side { height: 55vw; }
+  .hero-h1 { font-size: clamp(2.4rem, 8vw, 4rem); }
 }
 
 /* ---------- Marquee ---------- */

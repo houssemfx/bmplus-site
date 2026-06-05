@@ -1,53 +1,57 @@
-import { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
+import { useEffect, useRef, useState, Suspense } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Canvas, useFrame } from '@react-three/fiber'
+import { useGLTF, Environment, ContactShadows, OrbitControls } from '@react-three/drei'
+import { useSpring, animated } from '@react-spring/three'
+import * as THREE from 'three'
 
 const WA_NUMBER = '213781418142'
 const WA_MSG_EN = encodeURIComponent("Hello BM+, I'd like to get a quote for custom furniture.")
 const WA_MSG_AR = encodeURIComponent("مرحباً BM+، أرغب في الحصول على عرض سعر لأثاث مخصص.")
 const EMAIL = 'mokhtarboukabous92@gmail.com'
 
+// Preload both models
+useGLTF.preload('/models/9362268e-0236-4990-9190-4750689b0e7c/base_basic_pbr.glb')
+useGLTF.preload('/models/fcebda7b-60d7-48a4-b321-f85b112a6a45/base_basic_pbr.glb')
+
 const T = {
   en: {
     dir: 'ltr',
     waMsg: WA_MSG_EN,
     nav: { collection: 'Collection', savoir: 'Craftsmanship', contact: 'Contact', cta: 'Get a Quote' },
-    hero: {
-      eyebrow: 'Exceptional Furniture · Kolea, Algeria',
-      h1: <>Furniture that <span className="italic">inhabits</span> space.</>,
-      p: 'BM+ designs and crafts custom furniture with clean lines — noble materials, precise finishes, mastered light.',
-      btnWa: 'Request a quote',
-      btnGhost: 'View collection',
-      scroll: 'Scroll',
-    },
+    heroPhases: [
+      {
+        eyebrow: 'Exceptional Furniture · Kolea, Algeria',
+        h1: <>Furniture that <span className="italic">inhabits</span> space.</>,
+        p: 'BM+ designs and crafts custom furniture with clean lines — noble materials, precise finishes, mastered light.',
+      },
+      {
+        eyebrow: 'Materials & Craftsmanship',
+        h1: <>Every detail <span className="italic">speaks</span> quality.</>,
+        p: 'Matte facades, lacquered frames, premium glass — materials chosen to last a lifetime and age with elegance.',
+      },
+      {
+        eyebrow: 'Your Vision, Our Craft',
+        h1: <>Made <span className="italic">exactly</span> for you.</>,
+        p: 'From your first sketch to final installation, we bring every detail to life. No compromises.',
+      },
+    ],
+    hero: { btnWa: 'Request a quote', btnGhost: 'View collection', scroll: 'Scroll' },
     marquee: ['Custom-made', 'Wardrobes', 'Bookcases', 'Lit displays', 'Kitchens', 'Matte finishes', 'Modern design'],
     intro: {
-      eyebrow: 'BM+ Craftsmanship',
-      h2: 'Elegance in every detail.',
+      eyebrow: 'BM+ Craftsmanship', h2: 'Elegance in every detail.',
       big: 'Each piece is conceived as architecture: black structure, clean facades, integrated light.',
       p: 'From first sketch to installation, we accompany each project. Precise measurements, selected materials and careful assembly for a lasting result.',
-      btn: 'Talk about your project',
-      tag: 'Light Collection',
+      btn: 'Talk about your project', tag: 'Light Collection',
     },
-    stats: [
-      ['12+', ' yrs', 'of experience'],
-      ['100%', '', 'custom-made'],
-      ['48h', '', 'free quote'],
-      ['∞', '', 'possible finishes'],
-    ],
+    stats: [['12+', ' yrs', 'of experience'], ['100%', '', 'custom-made'], ['48h', '', 'free quote'], ['∞', '', 'possible finishes']],
     collection: {
-      eyebrow: 'The collection',
-      h2: 'Signature pieces',
+      eyebrow: 'The collection', h2: 'Signature pieces',
       p: 'A selection of creations — from closed wardrobes to lit displays.',
-      cards: [
-        ['Wardrobe', 'Atelier Line'],
-        ['Lit display', 'Light Edition'],
-        ['Bookcase', 'Noir Composition'],
-        ['Centerpiece', 'Duo Display'],
-      ],
+      cards: [['Wardrobe', 'Atelier Line'], ['Lit display', 'Light Edition'], ['Bookcase', 'Noir Composition'], ['Centerpiece', 'Duo Display']],
     },
     values: {
-      eyebrow: 'Why BM+',
-      h2: "A craftsman's approach, an architect's finish.",
+      eyebrow: 'Why BM+', h2: "A craftsman's approach, an architect's finish.",
       items: [
         ['01', 'Custom design', 'We draw each piece according to your space, uses and style — no compromise on proportions.'],
         ['02', 'Materials & finishes', 'Matte facades, lacquered frames, glass and wood: materials selected to last and age with elegance.'],
@@ -55,20 +59,13 @@ const T = {
       ],
     },
     cta: {
-      eyebrow: 'Your project starts here',
-      h2: 'Request your free quote.',
+      eyebrow: 'Your project starts here', h2: 'Request your free quote.',
       p: 'Send us your ideas, dimensions or inspirations on WhatsApp. Quick response and personalized support.',
-      btnWa: 'WhatsApp · 0781 41 81 42',
-      btnGhost: 'Write to us',
+      btnWa: 'WhatsApp · 0781 41 81 42', btnGhost: 'Write to us',
     },
     contact: {
-      eyebrow: 'Contact',
-      h2: "Let's talk about your interior.",
-      items: [
-        ['WhatsApp / Phone', null],
-        ['Email', null],
-        ['Workshop', 'Kolea, Algeria · 42003'],
-      ],
+      eyebrow: 'Contact', h2: "Let's talk about your interior.",
+      items: [['WhatsApp / Phone', null], ['Email', null], ['Workshop', 'Kolea, Algeria · 42003']],
     },
     footer: '© 2026 Meubles BM Plus — Custom furniture · Kolea, Algeria',
   },
@@ -76,43 +73,39 @@ const T = {
     dir: 'rtl',
     waMsg: WA_MSG_AR,
     nav: { collection: 'المجموعة', savoir: 'حرفيتنا', contact: 'اتصل بنا', cta: 'طلب عرض سعر' },
-    hero: {
-      eyebrow: 'أثاث استثنائي · قليعة، الجزائر',
-      h1: <>أثاث <span className="italic">يُسكن</span> الفضاء.</>,
-      p: 'تُصمّم BM+ وتصنع الأثاث المخصص بخطوط أنيقة — مواد راقية، تشطيبات دقيقة، وإضاءة محكمة.',
-      btnWa: 'طلب عرض سعر',
-      btnGhost: 'استعرض المجموعة',
-      scroll: 'تمرير',
-    },
+    heroPhases: [
+      {
+        eyebrow: 'أثاث استثنائي · قليعة، الجزائر',
+        h1: <>أثاث <span className="italic">يُسكن</span> الفضاء.</>,
+        p: 'تُصمّم BM+ وتصنع الأثاث المخصص بخطوط أنيقة — مواد راقية، تشطيبات دقيقة، وإضاءة محكمة.',
+      },
+      {
+        eyebrow: 'المواد والحرفية',
+        h1: <>كل تفصيل <span className="italic">يتحدث</span> بالجودة.</>,
+        p: 'واجهات مطفأة، هياكل ملمّعة، زجاج فاخر — مواد مختارة لتدوم عمراً وتشيخ بأناقة.',
+      },
+      {
+        eyebrow: 'رؤيتك، حرفيتنا',
+        h1: <>مصنوع <span className="italic">خصيصاً</span> لك.</>,
+        p: 'من رسمتك الأولى إلى التركيب النهائي، نُحيي كل تفصيل. بلا تنازلات.',
+      },
+    ],
+    hero: { btnWa: 'طلب عرض سعر', btnGhost: 'استعرض المجموعة', scroll: 'تمرير' },
     marquee: ['على القياس', 'غرف ملابس', 'مكتبات', 'واجهات مضيئة', 'مطابخ', 'تشطيبات مطفأة', 'تصميم عصري'],
     intro: {
-      eyebrow: 'حرفية BM+',
-      h2: 'الأناقة في كل تفصيل.',
+      eyebrow: 'حرفية BM+', h2: 'الأناقة في كل تفصيل.',
       big: 'كل قطعة مُصمَّمة كبنية معمارية: هيكل أسود، واجهات أنيقة، وإضاءة متكاملة.',
       p: 'من الرسم الأول حتى التركيب، نرافق كل مشروع. قياسات دقيقة، مواد مختارة، وتجميع عناية فائقة لنتيجة دائمة.',
-      btn: 'تحدث عن مشروعك',
-      tag: 'مجموعة الضوء',
+      btn: 'تحدث عن مشروعك', tag: 'مجموعة الضوء',
     },
-    stats: [
-      ['12+', ' سنة', 'من الخبرة'],
-      ['100%', '', 'على القياس'],
-      ['48 س', '', 'عرض سعر مجاني'],
-      ['∞', '', 'تشطيبات ممكنة'],
-    ],
+    stats: [['12+', ' سنة', 'من الخبرة'], ['100%', '', 'على القياس'], ['48 س', '', 'عرض سعر مجاني'], ['∞', '', 'تشطيبات ممكنة']],
     collection: {
-      eyebrow: 'المجموعة',
-      h2: 'القطع المميزة',
+      eyebrow: 'المجموعة', h2: 'القطع المميزة',
       p: 'مختارات من أعمالنا — من غرف الملابس المغلقة إلى الواجهات المضيئة.',
-      cards: [
-        ['غرفة ملابس', 'خط أتيليه'],
-        ['واجهة مضيئة', 'إصدار الضوء'],
-        ['مكتبة', 'تركيبة نوار'],
-        ['قطعة رئيسية', 'فيترين دوو'],
-      ],
+      cards: [['غرفة ملابس', 'خط أتيليه'], ['واجهة مضيئة', 'إصدار الضوء'], ['مكتبة', 'تركيبة نوار'], ['قطعة رئيسية', 'فيترين دوو']],
     },
     values: {
-      eyebrow: 'لماذا BM+',
-      h2: 'أسلوب الحرفي، تشطيب المعماري.',
+      eyebrow: 'لماذا BM+', h2: 'أسلوب الحرفي، تشطيب المعماري.',
       items: [
         ['01', 'تصميم مخصص', 'نرسم كل قطعة وفق فضائك واستخداماتك وأسلوبك — بلا تنازل على النسب.'],
         ['02', 'مواد وتشطيبات', 'واجهات مطفأة، هياكل ملمّعة، زجاج وخشب: مواد مختارة لتدوم وتشيخ بأناقة.'],
@@ -120,25 +113,19 @@ const T = {
       ],
     },
     cta: {
-      eyebrow: 'مشروعك يبدأ هنا',
-      h2: 'اطلب عرض سعرك المجاني.',
+      eyebrow: 'مشروعك يبدأ هنا', h2: 'اطلب عرض سعرك المجاني.',
       p: 'أرسل لنا أفكارك وأبعادك أو مصادر إلهامك عبر واتساب. رد سريع ومرافقة شخصية.',
-      btnWa: 'واتساب · 0781 41 81 42',
-      btnGhost: 'راسلنا',
+      btnWa: 'واتساب · 0781 41 81 42', btnGhost: 'راسلنا',
     },
     contact: {
-      eyebrow: 'اتصل بنا',
-      h2: 'لنتحدث عن ديكور منزلك.',
-      items: [
-        ['واتساب / هاتف', null],
-        ['البريد الإلكتروني', null],
-        ['الورشة', 'قليعة، الجزائر · 42003'],
-      ],
+      eyebrow: 'اتصل بنا', h2: 'لنتحدث عن ديكور منزلك.',
+      items: [['واتساب / هاتف', null], ['البريد الإلكتروني', null], ['الورشة', 'قليعة، الجزائر · 42003']],
     },
     footer: '© 2026 مفروشات BM Plus — أثاث مخصص · قليعة، الجزائر',
   },
 }
 
+// ─── Icons ────────────────────────────────────────────────────────────────────
 const IconWA = () => (
   <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
     <path d="M.057 24l1.687-6.163a11.867 11.867 0 01-1.587-5.945C.16 5.335 5.495 0 12.05 0a11.82 11.82 0 018.413 3.488 11.82 11.82 0 013.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 01-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884a9.86 9.86 0 001.523 5.27l-.999 3.648 3.966-1.617zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
@@ -151,6 +138,7 @@ const IconArrow = ({ rtl }) => (
   </svg>
 )
 
+// ─── Animation helper ─────────────────────────────────────────────────────────
 const rise = {
   hidden: { opacity: 0, y: 34 },
   show: (i = 0) => ({
@@ -168,13 +156,81 @@ const Reveal = ({ children, i = 0, className, as: Tag = 'div', style }) => {
   )
 }
 
+// ─── 3D Chair ─────────────────────────────────────────────────────────────────
+function ChairModel({ scrollProgress, phase }) {
+  const { scene } = useGLTF('/models/9362268e-0236-4990-9190-4750689b0e7c/base_basic_pbr.glb')
+  const meshRef = useRef()
+  const prevPhase = useRef(phase)
+  const scaleSpring = useRef(1)
+  const scaleTarget = useRef(1)
+
+  // Trigger zoom-in on phase change
+  useEffect(() => {
+    if (phase !== prevPhase.current) {
+      scaleTarget.current = 1.18
+      setTimeout(() => { scaleTarget.current = 1 }, 400)
+      prevPhase.current = phase
+    }
+  }, [phase])
+
+  useFrame((_, delta) => {
+    if (!meshRef.current) return
+    // Smooth spin driven by scroll
+    const targetY = scrollProgress.current * Math.PI * 2.5
+    meshRef.current.rotation.y += (targetY - meshRef.current.rotation.y) * 0.06
+    // Gentle float
+    meshRef.current.position.y = Math.sin(Date.now() * 0.0008) * 0.04
+    // Scale spring
+    scaleSpring.current += (scaleTarget.current - scaleSpring.current) * 0.12
+    meshRef.current.scale.setScalar(scaleSpring.current)
+  })
+
+  // Center the model
+  useEffect(() => {
+    if (!meshRef.current) return
+    const box = new THREE.Box3().setFromObject(meshRef.current)
+    const center = box.getCenter(new THREE.Vector3())
+    const size = box.getSize(new THREE.Vector3())
+    meshRef.current.position.x = -center.x
+    meshRef.current.position.z = -center.z
+    meshRef.current.position.y = -box.min.y
+  }, [scene])
+
+  return <primitive ref={meshRef} object={scene} />
+}
+
+function HeroCanvas({ scrollProgress, phase }) {
+  return (
+    <Canvas
+      shadows
+      camera={{ position: [0, 1.2, 3.5], fov: 42 }}
+      style={{ background: 'transparent' }}
+      gl={{ antialias: true, alpha: true }}
+    >
+      <ambientLight intensity={0.4} />
+      <directionalLight
+        position={[3, 5, 3]} intensity={1.6}
+        castShadow shadow-mapSize={[2048, 2048]}
+      />
+      <directionalLight position={[-4, 2, -2]} intensity={0.4} color="#c8b49a" />
+      <pointLight position={[0, 4, -2]} intensity={0.6} color="#ffffff" />
+
+      <Suspense fallback={null}>
+        <ChairModel scrollProgress={scrollProgress} phase={phase} />
+        <ContactShadows
+          position={[0, 0, 0]} opacity={0.55} scale={6}
+          blur={2.5} far={4} color="#000000"
+        />
+        <Environment preset="studio" />
+      </Suspense>
+    </Canvas>
+  )
+}
+
+// ─── Nav ─────────────────────────────────────────────────────────────────────
 function LangToggle({ lang, setLang }) {
   return (
-    <button
-      className="lang-toggle"
-      onClick={() => setLang(l => l === 'en' ? 'ar' : 'en')}
-      aria-label="Switch language"
-    >
+    <button className="lang-toggle" onClick={() => setLang(l => l === 'en' ? 'ar' : 'en')} aria-label="Switch language">
       <span className={lang === 'en' ? 'active' : ''}>EN</span>
       <span className="sep">|</span>
       <span className={lang === 'ar' ? 'active' : ''}>AR</span>
@@ -203,29 +259,86 @@ function Nav({ lang, setLang, scrolled, t }) {
   )
 }
 
-function Hero({ t, lang }) {
-  const waLink = `https://wa.me/${WA_NUMBER}?text=${t.waMsg}`
+// ─── Hero ─────────────────────────────────────────────────────────────────────
+function Hero({ t, lang, waLink }) {
+  const heroRef = useRef()
+  const scrollProgress = useRef(0)
+  const [phase, setPhase] = useState(0)
+  const phases = t.heroPhases
+
+  useEffect(() => {
+    const onScroll = () => {
+      if (!heroRef.current) return
+      const rect = heroRef.current.getBoundingClientRect()
+      const totalScroll = heroRef.current.offsetHeight - window.innerHeight
+      const scrolled = -rect.top
+      const progress = Math.max(0, Math.min(1, scrolled / totalScroll))
+      scrollProgress.current = progress
+      const newPhase = progress < 0.33 ? 0 : progress < 0.66 ? 1 : 2
+      setPhase(p => p !== newPhase ? newPhase : p)
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
+  const cur = phases[phase]
+
   return (
-    <header className="hero" id="top">
-      <video className="hero-video" src="/media/hero.mp4" autoPlay muted loop playsInline poster="/media/product.jpg" />
-      <div className="hero-inner">
-        <motion.div initial="hidden" animate="show">
-          <Reveal as="p" className="eyebrow" i={0}>{t.hero.eyebrow}</Reveal>
-          <Reveal as="h1" className="display" i={1}>{t.hero.h1}</Reveal>
-          <Reveal as="p" i={2}>{t.hero.p}</Reveal>
-          <Reveal className="hero-actions" i={3}>
+    <div ref={heroRef} className="hero-scroll-container" id="top">
+      <div className="hero-sticky">
+        {/* Studio background */}
+        <div className="hero-studio-bg" />
+
+        {/* Left — text */}
+        <div className="hero-text-side">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={phase}
+              initial={{ opacity: 0, y: 28 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <p className="eyebrow hero-eyebrow">{cur.eyebrow}</p>
+              <h1 className="display hero-h1">{cur.h1}</h1>
+              <p className="hero-p">{cur.p}</p>
+            </motion.div>
+          </AnimatePresence>
+
+          <motion.div
+            className="hero-actions"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5, duration: 0.8 }}
+          >
             <a href={waLink} target="_blank" rel="noreferrer" className="btn btn-wa">
               <IconWA /> {t.hero.btnWa}
             </a>
-            <a href="#collection" className="btn btn-ghost">{t.hero.btnGhost}</a>
-          </Reveal>
-        </motion.div>
+            <a href="#collection" className="btn btn-ghost hero-ghost">{t.hero.btnGhost}</a>
+          </motion.div>
+
+          {/* Phase dots */}
+          <div className="hero-dots">
+            {phases.map((_, i) => (
+              <span key={i} className={`hero-dot ${i === phase ? 'active' : ''}`} />
+            ))}
+          </div>
+        </div>
+
+        {/* Right — 3D canvas */}
+        <div className="hero-canvas-side">
+          <HeroCanvas scrollProgress={scrollProgress} phase={phase} />
+        </div>
+
+        <span className="scroll-hint" style={lang === 'ar' ? { right: 'auto', left: 'var(--pad)' } : {}}>
+          {t.hero.scroll}
+        </span>
       </div>
-      <span className="scroll-hint" style={lang === 'ar' ? { right: 'auto', left: 'var(--pad)' } : {}}>{t.hero.scroll}</span>
-    </header>
+    </div>
   )
 }
 
+// ─── Rest of sections (unchanged content, same as before) ────────────────────
 function Marquee({ t }) {
   const loop = [...t.marquee, ...t.marquee]
   return (
@@ -238,7 +351,6 @@ function Marquee({ t }) {
 }
 
 function Intro({ t, lang }) {
-  const waLink = `https://wa.me/${WA_NUMBER}?text=${t.waMsg}`
   return (
     <section className="section container" id="savoir">
       <div className="split">
@@ -258,7 +370,6 @@ function Intro({ t, lang }) {
           </Reveal>
         </div>
       </div>
-
       <div className="stats">
         {t.stats.map(([num, suf, label], i) => (
           <Reveal className="stat" i={i} key={label}>
@@ -281,7 +392,6 @@ function Collection({ t }) {
         </div>
         <Reveal as="p">{t.collection.p}</Reveal>
       </div>
-
       <div className="grid">
         <Reveal className="card c-tall" i={0}>
           <video src="/media/clip1.mp4" autoPlay muted loop playsInline />
@@ -382,10 +492,12 @@ function Footer({ t }) {
   )
 }
 
+// ─── App ──────────────────────────────────────────────────────────────────────
 export default function App() {
   const [lang, setLang] = useState('en')
   const [scrolled, setScrolled] = useState(false)
   const t = T[lang]
+  const waLink = `https://wa.me/${WA_NUMBER}?text=${t.waMsg}`
 
   useEffect(() => {
     document.documentElement.dir = t.dir
@@ -393,17 +505,15 @@ export default function App() {
   }, [lang, t.dir])
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 40)
-    window.addEventListener('scroll', onScroll)
+    const onScroll = () => setScrolled(window.scrollY > window.innerHeight * 0.8)
+    window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
-
-  const waLink = `https://wa.me/${WA_NUMBER}?text=${t.waMsg}`
 
   return (
     <>
       <Nav lang={lang} setLang={setLang} scrolled={scrolled} t={t} />
-      <Hero t={t} lang={lang} />
+      <Hero t={t} lang={lang} waLink={waLink} />
       <Marquee t={t} />
       <Intro t={t} lang={lang} />
       <Collection t={t} />
