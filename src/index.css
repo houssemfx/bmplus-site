@@ -92,7 +92,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   border-bottom: 1px solid var(--line);
   padding-top: 1rem; padding-bottom: 1rem;
 }
-.nav.scrolled .brand-mark, .nav.scrolled .nav-links a, .nav.scrolled .nav-cta { color: var(--ink); }
+.nav.scrolled .brand-mark, .nav.scrolled .nav-links a:not(.btn-nav-cta), .nav.scrolled .nav-cta { color: var(--ink); }
 .brand {
   display: flex; align-items: baseline; gap: 0.55rem;
   font-family: var(--font-display); font-style: italic; font-weight: 400;
