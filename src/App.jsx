@@ -195,7 +195,7 @@ function Nav({ lang, setLang, scrolled, t }) {
         <a href="#savoir" className="hide-mobile" style={{ color: scrolled ? '' : '#f4f1ea' }}>{t.nav.savoir}</a>
         <a href="#contact" className="hide-mobile" style={{ color: scrolled ? '' : '#f4f1ea' }}>{t.nav.contact}</a>
         <LangToggle lang={lang} setLang={setLang} />
-        <a href={waLink} target="_blank" rel="noreferrer" className={`btn btn-nav-cta ${scrolled ? 'btn-nav-cta--scrolled' : ''}`}>
+        <a href={waLink} target="_blank" rel="noreferrer" className="btn btn-nav-cta">
           {t.nav.cta} <IconArrow rtl={lang === 'ar'} />
         </a>
       </div>

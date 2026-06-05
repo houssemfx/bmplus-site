@@ -133,8 +133,8 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   padding: 0.7rem 1.3rem;
 }
 .btn-nav-cta:hover { background: var(--brass); color: var(--ivory); transform: translateY(-2px); }
-.btn-nav-cta--scrolled { background: var(--ink); color: var(--ivory); }
-.btn-nav-cta--scrolled:hover { background: var(--brass-deep); color: var(--ivory); }
+.nav.scrolled .btn-nav-cta { background: var(--ink); color: var(--ivory); }
+.nav.scrolled .btn-nav-cta:hover { background: var(--brass-deep); color: var(--ivory); }
 
 /* ---------- Hero ---------- */
 .hero {
