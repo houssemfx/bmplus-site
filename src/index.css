@@ -37,8 +37,11 @@ body {
   font-family: var(--font-body);
   font-weight: 400;
   line-height: 1.6;
-  overflow-x: hidden;
+  /* clip (not hidden) so the full-bleed 3D stage can't cause sidescroll
+     while position:sticky on the hero keeps working on mobile/small screens */
+  overflow-x: clip;
 }
+html { overflow-x: clip; }
 
 ::selection { background: var(--ink); color: var(--ivory); }
 
@@ -276,7 +279,9 @@ html[dir="rtl"] .hero-dots { justify-content: flex-end; }
   text-transform: uppercase; color: var(--mist);
 }
 @media (max-width: 860px) {
-  .hero-scroll-container { height: 300vh; }
+  /* longer scroll track so the phased hero "rolls" fully before section 2,
+     matching the unhurried feel of a tall desktop screen */
+  .hero-scroll-container { height: 340vh; }
   /* Chair lives in the top band; copy reveals over the lower band */
   .hero-canvas-layer { inset: 0 0 32% 0; }
   .hero-text-side {
