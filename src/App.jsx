@@ -2,7 +2,6 @@ import { useEffect, useRef, useState, Suspense } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { useGLTF, Environment, ContactShadows, OrbitControls } from '@react-three/drei'
-import { useSpring, animated } from '@react-spring/three'
 import * as THREE from 'three'
 
 const WA_NUMBER = '213781418142'
