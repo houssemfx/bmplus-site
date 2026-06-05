@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, Suspense } from 'react'
 import { motion, AnimatePresence, useScroll, useTransform, useMotionValueEvent } from 'framer-motion'
-import { Canvas, useFrame } from '@react-three/fiber'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { useGLTF, Environment, ContactShadows, OrbitControls } from '@react-three/drei'
 import * as THREE from 'three'
 
@@ -411,7 +411,10 @@ function Marquee({ t }) {
 
 function CabinetModel() {
   const { scene } = useGLTF('/models/bm-cabinet.glb')
-  const { offset, baseScale, groundY } = useMemo(() => {
+  const { camera, size } = useThree()
+
+  // Raw geometry extents — computed once.
+  const ext = useMemo(() => {
     scene.traverse((o) => {
       if (o.isMesh) {
         o.castShadow = true
@@ -429,15 +432,33 @@ function CabinetModel() {
     })
     const box = new THREE.Box3().setFromObject(scene)
     const center = box.getCenter(new THREE.Vector3())
-    const size = box.getSize(new THREE.Vector3())
-    const maxDim = Math.max(size.x, size.y, size.z) || 1
-    const baseScale = 2.85 / maxDim
-    return { offset: center, baseScale, groundY: -(size.y * baseScale) / 2 }
+    const s = box.getSize(new THREE.Vector3())
+    return {
+      offset: center,
+      hy: s.y / 2,
+      // worst-case horizontal silhouette while spinning around Y (diagonal)
+      rotR: Math.hypot(s.x / 2, s.z / 2),
+    }
   }, [scene])
+
+  // Responsive fit: scale the unit so it always fits the live canvas — width
+  // AND height — so it's never clipped on portrait phones.
+  const { scale, groundY } = useMemo(() => {
+    const dist = camera.position.length() || 6.5
+    const vFov = (camera.fov * Math.PI) / 180
+    const visHalfH = Math.tan(vFov / 2) * dist
+    const aspect = size.width / Math.max(1, size.height)
+    const visHalfW = visHalfH * aspect
+    const fitW = visHalfW / ext.rotR
+    const fitH = visHalfH / ext.hy
+    const s = Math.min(fitW, fitH) * 0.82 // 0.82 = breathing room
+    return { scale: s, groundY: -(ext.hy * s) }
+  }, [camera, size.width, size.height, ext])
+
   return (
     <>
-      <group scale={baseScale}>
-        <primitive object={scene} position={[-offset.x, -offset.y, -offset.z]} />
+      <group scale={scale}>
+        <primitive object={scene} position={[-ext.offset.x, -ext.offset.y, -ext.offset.z]} />
       </group>
       <ContactShadows
         position={[0, groundY, 0]} opacity={0.4} scale={6}

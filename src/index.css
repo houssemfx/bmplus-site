@@ -344,7 +344,11 @@ html[dir="rtl"] .hero-dots { justify-content: flex-end; }
 .cabinet-3d { position: absolute; inset: 0; width: 100%; height: 100%; cursor: grab; }
 .cabinet-3d:active { cursor: grabbing; }
 .cabinet-3d canvas { width: 100% !important; height: 100% !important; display: block; }
-@media (max-width: 880px) { .craft-stage { height: clamp(380px, 60vh, 560px); } .craft-foot { justify-content: center; text-align: center; } }
+@media (max-width: 880px) {
+  .craft-stage { height: clamp(440px, 68vh, 640px); }
+  .craft-foot { justify-content: center; text-align: center; }
+  .craft-hint { top: 0.8rem; right: 0.9rem; }
+}
 .split-media .tag {
   position: absolute; bottom: 1.2rem; left: 1.2rem;
   background: rgba(244,241,234,0.92); backdrop-filter: blur(6px);
