@@ -86,6 +86,29 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .btn-wa:hover { background: #14672f; transform: translateY(-2px); box-shadow: 0 18px 40px -16px rgba(31,138,76,0.6); }
 .btn svg { width: 1.05em; height: 1.05em; }
 
+/* Primary hero CTA — warm brass, confident and glowing */
+.btn-brass {
+  background: linear-gradient(135deg, var(--brass) 0%, var(--brass-deep) 100%);
+  color: #fff;
+  box-shadow: 0 14px 34px -14px rgba(154,111,67,0.65);
+}
+.btn-brass:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 22px 46px -16px rgba(154,111,67,0.78);
+  filter: saturate(1.08) brightness(1.04);
+}
+/* Hero secondary — brass outline that fills on hover */
+.hero-ghost {
+  border: 1.5px solid var(--brass) !important;
+  color: var(--brass-deep) !important;
+}
+.hero-ghost:hover {
+  background: var(--brass) !important;
+  border-color: var(--brass) !important;
+  color: #fff !important;
+  transform: translateY(-2px);
+}
+
 /* ---------- Layout ---------- */
 .section { padding: clamp(5rem, 11vw, 11rem) var(--pad); }
 .container { max-width: 1320px; margin: 0 auto; }
@@ -128,7 +151,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .lang-toggle {
   display: inline-flex; align-items: center; gap: 0.35rem;
   font-size: 0.72rem; letter-spacing: 0.1em; font-weight: 600;
-  color: rgba(244,241,234,0.75); cursor: pointer;
+  color: var(--mist); cursor: pointer;
   transition: color 0.3s;
   font-family: var(--font-body);
 }
@@ -139,87 +162,142 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 
 /* ---------- Nav CTA ---------- */
 .btn-nav-cta {
-  background: var(--ivory);
-  color: var(--ink);
+  background: linear-gradient(135deg, var(--brass) 0%, var(--brass-deep) 100%);
+  color: #fff;
   padding: 0.7rem 1.3rem;
+  box-shadow: 0 10px 26px -14px rgba(154,111,67,0.6);
 }
-.btn-nav-cta:hover { background: var(--brass); color: var(--ivory); transform: translateY(-2px); }
-.nav.scrolled .btn-nav-cta { background: var(--ink); color: var(--ivory); }
+.btn-nav-cta:hover { transform: translateY(-2px); box-shadow: 0 16px 32px -14px rgba(154,111,67,0.75); filter: brightness(1.05); }
+.nav.scrolled .btn-nav-cta { background: var(--ink); color: var(--ivory); box-shadow: none; }
 .nav.scrolled .btn-nav-cta:hover { background: var(--brass-deep); color: var(--ivory); }
 
-/* ---------- Hero — 3D Studio ---------- */
+/* ---------- Hero — White Gallery, scroll-choreographed 3D ---------- */
 .hero-scroll-container {
   position: relative;
-  height: 280vh;
+  height: 320vh;
 }
 .hero-sticky {
   position: sticky; top: 0;
   height: 100svh; overflow: hidden;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  background: var(--paper);
 }
-.hero-studio-bg {
+/* Airy white gallery backdrop with warm light + a soft floor */
+.hero-light-bg {
   position: absolute; inset: 0; z-index: 0;
   background:
-    radial-gradient(ellipse 70% 60% at 75% 55%, #2a2520 0%, transparent 65%),
-    radial-gradient(ellipse 50% 80% at 20% 50%, #1c1814 0%, transparent 60%),
-    linear-gradient(160deg, #111010 0%, #1a1714 40%, #0e0d0c 100%);
+    radial-gradient(ellipse 60% 55% at 50% 42%, #ffffff 0%, transparent 60%),
+    radial-gradient(ellipse 75% 50% at 70% 30%, rgba(184,137,90,0.10) 0%, transparent 60%),
+    linear-gradient(180deg, #fbfaf6 0%, #f4f0e7 70%, #ece6d8 100%);
 }
-/* subtle floor vignette */
-.hero-studio-bg::after {
+.hero-light-bg::after { /* soft floor grounding under the chair */
   content: '';
   position: absolute; inset: 0;
-  background: radial-gradient(ellipse 90% 40% at 50% 100%, rgba(0,0,0,0.55), transparent 70%);
+  background: radial-gradient(ellipse 46% 26% at 50% 86%, rgba(20,18,16,0.10), transparent 70%);
 }
-.hero-text-side {
-  position: relative; z-index: 2;
-  display: flex; flex-direction: column; justify-content: center;
-  padding: clamp(5rem,8vw,9rem) clamp(2rem,5vw,6rem) clamp(3rem,5vw,5rem) var(--pad);
-  max-width: 640px;
+/* Oversized artistic wordmark watermark behind the chair */
+.hero-watermark {
+  position: absolute; z-index: 1;
+  top: 50%; left: 50%; transform: translate(-50%, -54%);
+  font-family: var(--font-display); font-style: italic; font-weight: 400;
+  font-size: clamp(10rem, 34vw, 34rem); line-height: 0.8;
+  color: rgba(20,18,16,0.035); letter-spacing: -0.04em;
+  pointer-events: none; user-select: none; white-space: nowrap;
 }
-.hero-canvas-side {
-  position: relative; z-index: 1;
-  width: 100%; height: 100%;
-}
-.hero-canvas-side canvas { width: 100% !important; height: 100% !important; }
 
-.hero-eyebrow { color: var(--brass) !important; margin-bottom: 1.2rem; }
+/* 3D layer — fills the viewport, slides from center to the right on scroll */
+.hero-canvas-layer {
+  position: absolute; inset: 0; z-index: 2;
+  will-change: transform;
+}
+.hero-canvas-layer canvas { width: 100% !important; height: 100% !important; }
+
+/* Centered intro overlay (visible before the chair docks) */
+.hero-intro {
+  position: absolute; z-index: 3; left: 0; right: 0; bottom: clamp(3rem, 9vh, 7rem);
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  pointer-events: none;
+}
+.hero-intro-eyebrow { color: var(--brass-deep) !important; margin-bottom: 0.9rem; }
+.hero-intro-title {
+  font-size: clamp(2.4rem, 6vw, 4.6rem); color: var(--ink);
+  font-weight: 400; font-style: italic; letter-spacing: -0.02em;
+}
+.hero-intro-title .brass { font-style: normal; color: var(--brass); }
+.hero-intro-cue {
+  margin-top: 1.6rem; font-size: 0.68rem; letter-spacing: 0.34em;
+  text-transform: uppercase; color: var(--mist);
+  display: inline-flex; align-items: center; gap: 0.6rem;
+}
+.hero-intro-cue::after {
+  content: ''; width: 1px; height: 38px; background: linear-gradient(var(--brass), transparent);
+  animation: cue-pulse 1.8s var(--ease) infinite;
+}
+@keyframes cue-pulse { 0%,100% { opacity: 0.3; transform: scaleY(0.7); } 50% { opacity: 1; transform: scaleY(1); } }
+
+/* Text panel — revealed on the left as the chair docks right */
+.hero-text-side {
+  position: absolute; z-index: 4; top: 0; bottom: 0; left: 0;
+  width: min(50%, 640px);
+  display: flex; flex-direction: column; justify-content: center;
+  padding: clamp(5rem,8vw,9rem) clamp(2rem,4vw,4rem) clamp(3rem,5vw,5rem) var(--pad);
+}
+html[dir="rtl"] .hero-text-side { left: auto; right: 0; padding-left: clamp(2rem,4vw,4rem); padding-right: var(--pad); text-align: right; }
+
+.hero-eyebrow { color: var(--brass-deep) !important; margin-bottom: 1.2rem; }
 .hero-h1 {
   font-family: var(--font-display);
-  font-weight: 300; line-height: 1.02; letter-spacing: -0.02em;
-  font-size: clamp(2.8rem, 5.5vw, 6.5rem);
-  color: var(--ivory);
+  font-weight: 400; line-height: 1.02; letter-spacing: -0.02em;
+  font-size: clamp(2.6rem, 5vw, 5.6rem);
+  color: var(--ink);
   margin: 0 0 1.6rem;
   max-width: 14ch;
 }
 .hero-h1 .italic { font-style: italic; color: var(--brass); }
 .hero-p {
-  max-width: 44ch; font-size: clamp(0.95rem, 1.4vw, 1.1rem);
-  color: rgba(244,241,234,0.7); font-weight: 300; line-height: 1.7;
+  max-width: 42ch; font-size: clamp(0.95rem, 1.3vw, 1.08rem);
+  color: var(--ink-soft); font-weight: 400; line-height: 1.7;
 }
 .hero-actions { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 2.4rem; }
-.hero-ghost { border-color: rgba(244,241,234,0.3) !important; color: var(--ivory) !important; }
-.hero-ghost:hover { background: var(--ivory) !important; color: var(--ink) !important; border-color: var(--ivory) !important; }
+html[dir="rtl"] .hero-actions { justify-content: flex-end; }
 
 /* Phase progress dots */
-.hero-dots { display: flex; gap: 0.6rem; margin-top: 2.4rem; }
+.hero-dots { display: flex; gap: 0.6rem; margin-top: 2.6rem; }
+html[dir="rtl"] .hero-dots { justify-content: flex-end; }
 .hero-dot {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: rgba(244,241,234,0.25);
-  transition: background 0.4s, transform 0.4s;
+  width: 7px; height: 7px; border-radius: 50%;
+  background: rgba(20,18,16,0.16);
+  transition: background 0.4s, transform 0.4s, width 0.4s;
 }
-.hero-dot.active { background: var(--brass); transform: scale(1.4); }
+.hero-dot.active { background: var(--brass); width: 22px; border-radius: 4px; }
 
 .scroll-hint {
-  position: absolute; bottom: 2rem; right: var(--pad); z-index: 3;
-  writing-mode: vertical-rl; font-size: 0.68rem; letter-spacing: 0.3em;
-  text-transform: uppercase; color: rgba(244,241,234,0.4);
+  position: absolute; bottom: 2rem; right: var(--pad); z-index: 5;
+  writing-mode: vertical-rl; font-size: 0.66rem; letter-spacing: 0.3em;
+  text-transform: uppercase; color: var(--mist);
 }
 @media (max-width: 860px) {
-  .hero-sticky { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
-  .hero-text-side { padding: 7rem var(--pad) 2rem; justify-content: flex-end; }
-  .hero-canvas-side { height: 55vw; }
-  .hero-h1 { font-size: clamp(2.4rem, 8vw, 4rem); }
+  .hero-scroll-container { height: 300vh; }
+  /* Chair lives in the top band; copy reveals over the lower band */
+  .hero-canvas-layer { inset: 0 0 32% 0; }
+  .hero-text-side {
+    width: 100%; justify-content: flex-end; text-align: center;
+    align-items: center; padding: 7rem var(--pad) clamp(2.5rem,9vh,5rem);
+    background: linear-gradient(180deg, transparent 28%, rgba(250,248,243,0.92) 58%, var(--paper) 100%);
+  }
+  html[dir="rtl"] .hero-text-side { text-align: center; align-items: center; right: 0; padding-inline: var(--pad); }
+  .hero-actions { justify-content: center; gap: 0.7rem; }
+  .hero-actions .btn { padding: 0.95rem 1.5rem; font-size: 0.78rem; }
+  .hero-dots { justify-content: center; }
+  .hero-h1 { font-size: clamp(2rem, 8.5vw, 3rem); margin-inline: auto; }
+  .hero-p { margin-inline: auto; font-size: 0.95rem; }
+  .hero-intro { bottom: 38%; }
+  .hero-intro-title { font-size: clamp(2rem, 9vw, 3rem); }
+  .hero-watermark { font-size: 52vw; transform: translate(-50%, -64%); }
+  .scroll-hint { display: none; }
+}
+@media (max-width: 420px) {
+  .hero-actions { flex-direction: column; width: 100%; max-width: 280px; }
+  .hero-actions .btn { width: 100%; justify-content: center; }
 }
 
 /* ---------- Marquee ---------- */

@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState, Suspense } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useEffect, useMemo, useRef, useState, Suspense } from 'react'
+import { motion, AnimatePresence, useScroll, useTransform, useMotionValueEvent } from 'framer-motion'
 import { Canvas, useFrame } from '@react-three/fiber'
-import { useGLTF, Environment, ContactShadows, OrbitControls } from '@react-three/drei'
+import { useGLTF, Environment, ContactShadows } from '@react-three/drei'
 import * as THREE from 'three'
 
 const WA_NUMBER = '213781418142'
@@ -139,86 +139,120 @@ const IconArrow = ({ rtl }) => (
 
 // ─── Animation helper ─────────────────────────────────────────────────────────
 const rise = {
-  hidden: { opacity: 0, y: 34 },
+  hidden: { opacity: 0, y: 42, filter: 'blur(8px)' },
   show: (i = 0) => ({
-    opacity: 1, y: 0,
-    transition: { duration: 0.9, ease: [0.16, 1, 0.3, 1], delay: i * 0.08 },
+    opacity: 1, y: 0, filter: 'blur(0px)',
+    transition: { duration: 1.0, ease: [0.16, 1, 0.3, 1], delay: i * 0.09 },
   }),
 }
 const Reveal = ({ children, i = 0, className, as: Tag = 'div', style }) => {
   const MTag = motion[Tag] || motion.div
   return (
     <MTag className={className} style={style} variants={rise} custom={i}
-      initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.3 }}>
+      initial="hidden" whileInView="show"
+      viewport={{ once: true, amount: 0.25, margin: '0px 0px -12% 0px' }}>
+      {children}
+    </MTag>
+  )
+}
+
+// Headline clip-wipe — used for the big display headings (artistic line reveal)
+const RevealHeading = ({ children, className, style, as: Tag = 'h2' }) => {
+  const MTag = motion[Tag] || motion.h2
+  return (
+    <MTag
+      className={className} style={style}
+      initial={{ opacity: 0, y: 30, clipPath: 'inset(0 0 100% 0)' }}
+      whileInView={{ opacity: 1, y: 0, clipPath: 'inset(0 0 -10% 0)' }}
+      viewport={{ once: true, amount: 0.4 }}
+      transition={{ duration: 1.05, ease: [0.16, 1, 0.3, 1] }}
+    >
       {children}
     </MTag>
   )
 }
 
 // ─── 3D Chair ─────────────────────────────────────────────────────────────────
-function ChairModel({ scrollProgress, phase }) {
+const FIT_SIZE = 2.4 // world units the model's tallest axis is normalized to
+
+function ChairModel({ scrollProgress, phase, onGround }) {
   const { scene } = useGLTF('/models/9362268e-0236-4990-9190-4750689b0e7c/base_basic_pbr.glb')
-  const meshRef = useRef()
+  const groupRef = useRef()
   const prevPhase = useRef(phase)
   const scaleSpring = useRef(1)
   const scaleTarget = useRef(1)
 
-  // Trigger zoom-in on phase change
-  useEffect(() => {
-    if (phase !== prevPhase.current) {
-      scaleTarget.current = 1.18
-      setTimeout(() => { scaleTarget.current = 1 }, 400)
-      prevPhase.current = phase
-    }
-  }, [phase])
-
-  useFrame((_, delta) => {
-    if (!meshRef.current) return
-    // Smooth spin driven by scroll
-    const targetY = scrollProgress.current * Math.PI * 2.5
-    meshRef.current.rotation.y += (targetY - meshRef.current.rotation.y) * 0.06
-    // Gentle float
-    meshRef.current.position.y = Math.sin(Date.now() * 0.0008) * 0.04
-    // Scale spring
-    scaleSpring.current += (scaleTarget.current - scaleSpring.current) * 0.12
-    meshRef.current.scale.setScalar(scaleSpring.current)
-  })
-
-  // Center the model
-  useEffect(() => {
-    if (!meshRef.current) return
-    const box = new THREE.Box3().setFromObject(meshRef.current)
+  // Normalize once per model: recenter geometry on its true centroid and
+  // uniformly scale so framing is identical regardless of the GLB's raw units.
+  const { offset, baseScale, groundY } = useMemo(() => {
+    const box = new THREE.Box3().setFromObject(scene)
     const center = box.getCenter(new THREE.Vector3())
     const size = box.getSize(new THREE.Vector3())
-    meshRef.current.position.x = -center.x
-    meshRef.current.position.z = -center.z
-    meshRef.current.position.y = -box.min.y
+    const maxDim = Math.max(size.x, size.y, size.z) || 1
+    const baseScale = FIT_SIZE / maxDim
+    return {
+      offset: center, // primitive is shifted by -offset so centroid sits at group origin
+      baseScale,
+      groundY: -(size.y * baseScale) / 2, // y of the model's feet after centering
+    }
   }, [scene])
 
-  return <primitive ref={meshRef} object={scene} />
+  // Report the floor height so the contact shadow tracks the real feet.
+  useEffect(() => { onGround?.(groundY) }, [groundY, onGround])
+
+  // Brief zoom-in pulse on each phase change.
+  useEffect(() => {
+    if (phase === prevPhase.current) return
+    scaleTarget.current = 1.1
+    prevPhase.current = phase
+    const id = setTimeout(() => { scaleTarget.current = 1 }, 420)
+    return () => clearTimeout(id)
+  }, [phase])
+
+  useFrame((state) => {
+    const g = groupRef.current
+    if (!g) return
+    // Scroll-driven spin around the centroid (in place, no wobble).
+    const targetY = scrollProgress.current * Math.PI * 2.5
+    g.rotation.y += (targetY - g.rotation.y) * 0.06
+    // Gentle float around the centered origin — additive, never clobbers centering.
+    g.position.y = Math.sin(state.clock.elapsedTime * 0.8) * 0.045
+    // Spring the phase-zoom on top of the normalized base scale.
+    scaleSpring.current += (scaleTarget.current - scaleSpring.current) * 0.1
+    g.scale.setScalar(baseScale * scaleSpring.current)
+  })
+
+  return (
+    <group ref={groupRef}>
+      <primitive object={scene} position={[-offset.x, -offset.y, -offset.z]} />
+    </group>
+  )
 }
 
 function HeroCanvas({ scrollProgress, phase }) {
+  const [groundY, setGroundY] = useState(-1.2)
   return (
     <Canvas
       shadows
-      camera={{ position: [0, 1.2, 3.5], fov: 42 }}
+      dpr={[1, 2]}
+      camera={{ position: [0, 0.45, 4.2], fov: 38 }}
       style={{ background: 'transparent' }}
       gl={{ antialias: true, alpha: true }}
+      onCreated={({ camera }) => camera.lookAt(0, 0, 0)}
     >
-      <ambientLight intensity={0.4} />
+      <ambientLight intensity={0.85} />
       <directionalLight
-        position={[3, 5, 3]} intensity={1.6}
+        position={[3, 5, 3]} intensity={1.5}
         castShadow shadow-mapSize={[2048, 2048]}
       />
-      <directionalLight position={[-4, 2, -2]} intensity={0.4} color="#c8b49a" />
-      <pointLight position={[0, 4, -2]} intensity={0.6} color="#ffffff" />
+      <directionalLight position={[-4, 2, -2]} intensity={0.5} color="#d8c4a8" />
+      <pointLight position={[0, 4, -2]} intensity={0.4} color="#ffffff" />
 
       <Suspense fallback={null}>
-        <ChairModel scrollProgress={scrollProgress} phase={phase} />
+        <ChairModel scrollProgress={scrollProgress} phase={phase} onGround={setGroundY} />
         <ContactShadows
-          position={[0, 0, 0]} opacity={0.55} scale={6}
-          blur={2.5} far={4} color="#000000"
+          position={[0, groundY, 0]} opacity={0.32} scale={5}
+          blur={2.8} far={3} color="#2a2118"
         />
         <Environment preset="studio" />
       </Suspense>
@@ -242,13 +276,13 @@ function Nav({ lang, setLang, scrolled, t }) {
   return (
     <nav className={`nav ${scrolled ? 'scrolled' : ''}`}>
       <a href="#top" className="brand">
-        <span className="brand-mark" style={{ color: scrolled ? '' : '#f4f1ea' }}>Meubles BM</span>
+        <span className="brand-mark">Meubles BM</span>
         <span className="brand-plus">+</span>
       </a>
       <div className="nav-links">
-        <a href="#collection" className="hide-mobile" style={{ color: scrolled ? '' : '#f4f1ea' }}>{t.nav.collection}</a>
-        <a href="#savoir" className="hide-mobile" style={{ color: scrolled ? '' : '#f4f1ea' }}>{t.nav.savoir}</a>
-        <a href="#contact" className="hide-mobile" style={{ color: scrolled ? '' : '#f4f1ea' }}>{t.nav.contact}</a>
+        <a href="#collection" className="hide-mobile">{t.nav.collection}</a>
+        <a href="#savoir" className="hide-mobile">{t.nav.savoir}</a>
+        <a href="#contact" className="hide-mobile">{t.nav.contact}</a>
         <LangToggle lang={lang} setLang={setLang} />
         <a href={waLink} target="_blank" rel="noreferrer" className="btn btn-nav-cta">
           {t.nav.cta} <IconArrow rtl={lang === 'ar'} />
@@ -261,42 +295,78 @@ function Nav({ lang, setLang, scrolled, t }) {
 // ─── Hero ─────────────────────────────────────────────────────────────────────
 function Hero({ t, lang, waLink }) {
   const heroRef = useRef()
-  const scrollProgress = useRef(0)
+  const scrollProgress = useRef(0) // raw 0..1, fed to the 3D spin
   const [phase, setPhase] = useState(0)
   const phases = t.heroPhases
+  const rtl = lang === 'ar'
+  const layerRef = useRef()
 
+  // On phones the chair stays centered (just reveals copy below) instead of docking aside
+  const [isMobile, setIsMobile] = useState(false)
   useEffect(() => {
-    const onScroll = () => {
-      if (!heroRef.current) return
-      const rect = heroRef.current.getBoundingClientRect()
-      const totalScroll = heroRef.current.offsetHeight - window.innerHeight
-      const scrolled = -rect.top
-      const progress = Math.max(0, Math.min(1, scrolled / totalScroll))
-      scrollProgress.current = progress
-      const newPhase = progress < 0.33 ? 0 : progress < 0.66 ? 1 : 2
-      setPhase(p => p !== newPhase ? newPhase : p)
-    }
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
+    const mq = window.matchMedia('(max-width: 860px)')
+    const update = () => setIsMobile(mq.matches)
+    update()
+    mq.addEventListener('change', update)
+    return () => mq.removeEventListener('change', update)
   }, [])
+
+  // Continuous scroll progress over the sticky container
+  const { scrollYProgress } = useScroll({
+    target: heroRef,
+    offset: ['start start', 'end end'],
+  })
+
+  // Intro overlay fades out as the chair leaves center
+  const introOpacity = useTransform(scrollYProgress, [0, 0.12], [1, 0])
+  const introY = useTransform(scrollYProgress, [0, 0.12], [0, -30])
+  // Text panel slides/fades in once the chair has moved over (or just fades up on mobile)
+  const textOpacity = useTransform(scrollYProgress, [0.12, 0.28], [0, 1])
+  const textX = useTransform(scrollYProgress, [0.12, 0.28], [rtl ? 44 : -44, 0])
+
+  useMotionValueEvent(scrollYProgress, 'change', (v) => {
+    scrollProgress.current = v
+    // Dock the chair aside on desktop; keep it centered on mobile
+    if (layerRef.current) {
+      const t = Math.min(1, v / 0.22)
+      const shift = isMobile ? 0 : (rtl ? -26 : 26) * t
+      layerRef.current.style.transform = `translateX(${shift}%)`
+    }
+    // Cycle the three copy phases across the docked region
+    const next = v < 0.46 ? 0 : v < 0.72 ? 1 : 2
+    setPhase(p => (p !== next ? next : p))
+  })
 
   const cur = phases[phase]
 
   return (
     <div ref={heroRef} className="hero-scroll-container" id="top">
       <div className="hero-sticky">
-        {/* Studio background */}
-        <div className="hero-studio-bg" />
+        {/* White gallery backdrop + artistic watermark */}
+        <div className="hero-light-bg" />
+        <span className="hero-watermark" aria-hidden="true">BM+</span>
 
-        {/* Left — text */}
-        <div className="hero-text-side">
+        {/* 3D layer — center → docks aside (desktop) / stays centered (mobile) */}
+        <div ref={layerRef} className="hero-canvas-layer">
+          <HeroCanvas scrollProgress={scrollProgress} phase={phase} />
+        </div>
+
+        {/* Centered intro (before dock) */}
+        <motion.div className="hero-intro" style={{ opacity: introOpacity, y: introY }}>
+          <p className="eyebrow hero-intro-eyebrow">{phases[0].eyebrow}</p>
+          <h2 className="display hero-intro-title">Meubles <span className="brass">BM+</span></h2>
+          <span className="hero-intro-cue">{t.hero.scroll}</span>
+        </motion.div>
+
+        {/* Text panel — revealed beside the docked chair */}
+        <motion.div className="hero-text-side" style={{ opacity: textOpacity, x: textX }}>
           <AnimatePresence mode="wait">
             <motion.div
               key={phase}
-              initial={{ opacity: 0, y: 28 }}
+              initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1] }}
+              exit={{ opacity: 0, y: -18 }}
+              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
             >
               <p className="eyebrow hero-eyebrow">{cur.eyebrow}</p>
               <h1 className="display hero-h1">{cur.h1}</h1>
@@ -304,32 +374,21 @@ function Hero({ t, lang, waLink }) {
             </motion.div>
           </AnimatePresence>
 
-          <motion.div
-            className="hero-actions"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5, duration: 0.8 }}
-          >
+          <div className="hero-actions">
             <a href={waLink} target="_blank" rel="noreferrer" className="btn btn-wa">
               <IconWA /> {t.hero.btnWa}
             </a>
-            <a href="#collection" className="btn btn-ghost hero-ghost">{t.hero.btnGhost}</a>
-          </motion.div>
+            <a href="#collection" className="btn hero-ghost">{t.hero.btnGhost}</a>
+          </div>
 
-          {/* Phase dots */}
           <div className="hero-dots">
             {phases.map((_, i) => (
               <span key={i} className={`hero-dot ${i === phase ? 'active' : ''}`} />
             ))}
           </div>
-        </div>
+        </motion.div>
 
-        {/* Right — 3D canvas */}
-        <div className="hero-canvas-side">
-          <HeroCanvas scrollProgress={scrollProgress} phase={phase} />
-        </div>
-
-        <span className="scroll-hint" style={lang === 'ar' ? { right: 'auto', left: 'var(--pad)' } : {}}>
+        <span className="scroll-hint" style={rtl ? { right: 'auto', left: 'var(--pad)' } : {}}>
           {t.hero.scroll}
         </span>
       </div>
@@ -359,7 +418,7 @@ function Intro({ t, lang }) {
         </Reveal>
         <div className="lead">
           <Reveal as="p" className="eyebrow">{t.intro.eyebrow}</Reveal>
-          <Reveal as="h2" className="display">{t.intro.h2}</Reveal>
+          <RevealHeading className="display">{t.intro.h2}</RevealHeading>
           <Reveal as="p" className="big">{t.intro.big}</Reveal>
           <Reveal as="p">{t.intro.p}</Reveal>
           <Reveal>
@@ -387,7 +446,7 @@ function Collection({ t }) {
       <div className="head-row">
         <div>
           <Reveal as="p" className="eyebrow">{t.collection.eyebrow}</Reveal>
-          <Reveal as="h2" className="display">{t.collection.h2}</Reveal>
+          <RevealHeading className="display">{t.collection.h2}</RevealHeading>
         </div>
         <Reveal as="p">{t.collection.p}</Reveal>
       </div>
@@ -417,9 +476,9 @@ function Values({ t }) {
   return (
     <section className="section container">
       <Reveal as="p" className="eyebrow">{t.values.eyebrow}</Reveal>
-      <Reveal as="h2" className="display" i={1} style={{ fontSize: 'clamp(2rem,5vw,3.6rem)', margin: '1rem 0 3.5rem', maxWidth: '16ch' }}>
+      <RevealHeading className="display" style={{ fontSize: 'clamp(2rem,5vw,3.6rem)', margin: '1rem 0 3.5rem', maxWidth: '16ch' }}>
         {t.values.h2}
-      </Reveal>
+      </RevealHeading>
       <div className="values">
         {t.values.items.map(([idx, title, body], i) => (
           <Reveal className="value" i={i} key={idx}>
@@ -457,9 +516,9 @@ function Contact({ t }) {
   return (
     <section className="section container" id="contact">
       <Reveal as="p" className="eyebrow">{t.contact.eyebrow}</Reveal>
-      <Reveal as="h2" className="display" i={1} style={{ fontSize: 'clamp(2rem,5vw,3.6rem)', marginTop: '1rem' }}>
+      <RevealHeading className="display" style={{ fontSize: 'clamp(2rem,5vw,3.6rem)', marginTop: '1rem' }}>
         {t.contact.h2}
-      </Reveal>
+      </RevealHeading>
       <div className="contact-grid">
         <Reveal className="contact-item" i={0}>
           <span className="k">{t.contact.items[0][0]}</span>
