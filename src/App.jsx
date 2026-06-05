@@ -173,6 +173,34 @@ const RevealHeading = ({ children, className, style, as: Tag = 'h2' }) => {
   )
 }
 
+// ─── Perf helpers ─────────────────────────────────────────────────────────────
+function useIsMobile() {
+  const [m, setM] = useState(
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 860px)').matches
+  )
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 860px)')
+    const u = () => setM(mq.matches)
+    mq.addEventListener('change', u)
+    return () => mq.removeEventListener('change', u)
+  }, [])
+  return m
+}
+
+// True while the element is on (or near) the screen — used to pause off-screen
+// WebGL canvases so only the visible one consumes the GPU.
+function useInView(ref, rootMargin = '300px') {
+  const [inView, setInView] = useState(true)
+  useEffect(() => {
+    const el = ref.current
+    if (!el || typeof IntersectionObserver === 'undefined') return
+    const io = new IntersectionObserver(([e]) => setInView(e.isIntersecting), { rootMargin })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [ref, rootMargin])
+  return inView
+}
+
 // ─── 3D Chair ─────────────────────────────────────────────────────────────────
 const FIT_SIZE = 2.4 // world units the model's tallest axis is normalized to
 
@@ -232,19 +260,24 @@ function ChairModel({ scrollProgress, phase, onGround }) {
 
 function HeroCanvas({ scrollProgress, phase }) {
   const [groundY, setGroundY] = useState(-1.2)
+  const isMobile = useIsMobile()
+  const wrapRef = useRef()
+  const inView = useInView(wrapRef)
   return (
+    <div ref={wrapRef} style={{ position: 'absolute', inset: 0 }}>
     <Canvas
-      shadows
-      dpr={[1, 2]}
+      shadows={!isMobile}
+      dpr={[1, isMobile ? 1.5 : 2]}
+      frameloop={inView ? 'always' : 'never'}
       camera={{ position: [0, 0.45, 4.2], fov: 38 }}
       style={{ background: 'transparent' }}
-      gl={{ antialias: true, alpha: true }}
+      gl={{ antialias: !isMobile, alpha: true, powerPreference: 'high-performance' }}
       onCreated={({ camera }) => camera.lookAt(0, 0, 0)}
     >
       <ambientLight intensity={0.85} />
       <directionalLight
         position={[3, 5, 3]} intensity={1.5}
-        castShadow shadow-mapSize={[2048, 2048]}
+        castShadow={!isMobile} shadow-mapSize={[1024, 1024]}
       />
       <directionalLight position={[-4, 2, -2]} intensity={0.5} color="#d8c4a8" />
       <pointLight position={[0, 4, -2]} intensity={0.4} color="#ffffff" />
@@ -254,10 +287,12 @@ function HeroCanvas({ scrollProgress, phase }) {
         <ContactShadows
           position={[0, groundY, 0]} opacity={0.32} scale={5}
           blur={2.8} far={3} color="#2a2118"
+          resolution={isMobile ? 256 : 512}
         />
         <Environment preset="studio" />
       </Suspense>
     </Canvas>
+    </div>
   )
 }
 
@@ -412,6 +447,7 @@ function Marquee({ t }) {
 function CabinetModel() {
   const { scene } = useGLTF('/models/bm-cabinet.glb')
   const { camera, size } = useThree()
+  const isMobile = useIsMobile()
 
   // Raw geometry extents — computed once.
   const ext = useMemo(() => {
@@ -463,25 +499,31 @@ function CabinetModel() {
       <ContactShadows
         position={[0, groundY, 0]} opacity={0.4} scale={6}
         blur={2.6} far={3} color="#141414"
+        resolution={isMobile ? 256 : 512}
       />
     </>
   )
 }
 
 function CabinetViewer() {
+  const isMobile = useIsMobile()
+  const wrapRef = useRef()
+  const inView = useInView(wrapRef)
   return (
-    <div className="cabinet-3d">
+    <div className="cabinet-3d" ref={wrapRef}>
       <Canvas
-        shadows dpr={[1, 2]}
+        shadows={!isMobile}
+        dpr={[1, isMobile ? 1.5 : 2]}
+        frameloop={inView ? 'always' : 'never'}
         camera={{ position: [-3.1, 1.15, 5.6], fov: 30 }}
-        gl={{ antialias: true, alpha: true, toneMappingExposure: 1.05 }}
+        gl={{ antialias: !isMobile, alpha: true, toneMappingExposure: 1.05, powerPreference: 'high-performance' }}
         style={{ background: 'transparent' }}
       >
         {/* Soft studio key from the front-left, like the reference photo */}
         <ambientLight intensity={0.26} />
         <directionalLight
           position={[-4, 5, 4]} intensity={2.4} color="#fff6ec"
-          castShadow shadow-mapSize={[2048, 2048]}
+          castShadow={!isMobile} shadow-mapSize={[1024, 1024]}
           shadow-bias={-0.0004} shadow-radius={6}
         />
         {/* Cool fill from the right to open the shadows gently */}
