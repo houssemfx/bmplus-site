@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, Suspense } from 'react'
 import { motion, AnimatePresence, useScroll, useTransform, useMotionValueEvent } from 'framer-motion'
 import { Canvas, useFrame } from '@react-three/fiber'
-import { useGLTF, Environment, ContactShadows } from '@react-three/drei'
+import { useGLTF, Environment, ContactShadows, OrbitControls } from '@react-three/drei'
 import * as THREE from 'three'
 
 const WA_NUMBER = '213781418142'
@@ -12,6 +12,7 @@ const EMAIL = 'mokhtarboukabous92@gmail.com'
 // Preload both models
 useGLTF.preload('/models/9362268e-0236-4990-9190-4750689b0e7c/base_basic_pbr.glb')
 useGLTF.preload('/models/fcebda7b-60d7-48a4-b321-f85b112a6a45/base_basic_pbr.glb')
+useGLTF.preload('/models/bm-cabinet.glb')
 
 const T = {
   en: {
@@ -408,25 +409,100 @@ function Marquee({ t }) {
   )
 }
 
+function CabinetModel() {
+  const { scene } = useGLTF('/models/bm-cabinet.glb')
+  const { offset, baseScale, groundY } = useMemo(() => {
+    scene.traverse((o) => {
+      if (o.isMesh) {
+        o.castShadow = true
+        o.receiveShadow = true
+        const m = o.material
+        if (m) {
+          if (m.transparent) o.castShadow = false // glass shouldn't cast
+          // make the warm LED strips actually glow
+          if (m.emissive && (m.emissive.r + m.emissive.g + m.emissive.b) > 0.05) {
+            m.emissiveIntensity = 3.2
+            o.castShadow = false
+          }
+        }
+      }
+    })
+    const box = new THREE.Box3().setFromObject(scene)
+    const center = box.getCenter(new THREE.Vector3())
+    const size = box.getSize(new THREE.Vector3())
+    const maxDim = Math.max(size.x, size.y, size.z) || 1
+    const baseScale = 2.85 / maxDim
+    return { offset: center, baseScale, groundY: -(size.y * baseScale) / 2 }
+  }, [scene])
+  return (
+    <>
+      <group scale={baseScale}>
+        <primitive object={scene} position={[-offset.x, -offset.y, -offset.z]} />
+      </group>
+      <ContactShadows
+        position={[0, groundY, 0]} opacity={0.4} scale={6}
+        blur={2.6} far={3} color="#141414"
+      />
+    </>
+  )
+}
+
+function CabinetViewer() {
+  return (
+    <div className="cabinet-3d">
+      <Canvas
+        shadows dpr={[1, 2]}
+        camera={{ position: [-3.1, 1.15, 5.6], fov: 30 }}
+        gl={{ antialias: true, alpha: true, toneMappingExposure: 1.05 }}
+        style={{ background: 'transparent' }}
+      >
+        {/* Soft studio key from the front-left, like the reference photo */}
+        <ambientLight intensity={0.26} />
+        <directionalLight
+          position={[-4, 5, 4]} intensity={2.4} color="#fff6ec"
+          castShadow shadow-mapSize={[2048, 2048]}
+          shadow-bias={-0.0004} shadow-radius={6}
+        />
+        {/* Cool fill from the right to open the shadows gently */}
+        <directionalLight position={[5, 2.2, 2.5]} intensity={0.55} color="#eaf0f7" />
+        {/* Back rim to separate the unit from the grey backdrop */}
+        <directionalLight position={[1.5, 3.5, -4]} intensity={0.7} color="#ffffff" />
+        {/* Warm bounce hinting at the interior LED glow */}
+        <pointLight position={[-1.4, 1.2, 1.2]} intensity={0.7} color="#ffd9a8" distance={6} decay={2} />
+        <Suspense fallback={null}>
+          <CabinetModel />
+          <Environment preset="apartment" environmentIntensity={0.5} />
+        </Suspense>
+        <OrbitControls
+          enablePan={false} enableZoom={false}
+          autoRotate autoRotateSpeed={0.7}
+          minPolarAngle={Math.PI / 3} maxPolarAngle={Math.PI / 2.05}
+        />
+      </Canvas>
+    </div>
+  )
+}
+
 function Intro({ t, lang }) {
   return (
-    <section className="section container" id="savoir">
-      <div className="split">
-        <Reveal className="split-media">
-          <img src="/media/product.jpg" alt="Lit display BM+ with black frame and glass shelves" />
-          <span className="tag">{t.intro.tag}</span>
+    <section className="section container craft" id="savoir">
+      <div className="craft-head">
+        <Reveal as="p" className="eyebrow">{t.intro.eyebrow}</Reveal>
+        <RevealHeading className="display">{t.intro.h2}</RevealHeading>
+        <Reveal as="p" className="big">{t.intro.big}</Reveal>
+      </div>
+      <Reveal className="craft-stage">
+        <CabinetViewer />
+        <span className="tag">{t.intro.tag}</span>
+        <span className="craft-hint">Drag to rotate</span>
+      </Reveal>
+      <div className="craft-foot">
+        <Reveal as="p" className="craft-foot-p">{t.intro.p}</Reveal>
+        <Reveal>
+          <a href="#contact" className="btn btn-ghost">
+            {t.intro.btn} <IconArrow rtl={lang === 'ar'} />
+          </a>
         </Reveal>
-        <div className="lead">
-          <Reveal as="p" className="eyebrow">{t.intro.eyebrow}</Reveal>
-          <RevealHeading className="display">{t.intro.h2}</RevealHeading>
-          <Reveal as="p" className="big">{t.intro.big}</Reveal>
-          <Reveal as="p">{t.intro.p}</Reveal>
-          <Reveal>
-            <a href="#contact" className="btn btn-ghost" style={{ marginTop: '0.6rem' }}>
-              {t.intro.btn} <IconArrow rtl={lang === 'ar'} />
-            </a>
-          </Reveal>
-        </div>
       </div>
       <div className="stats">
         {t.stats.map(([num, suf, label], i) => (
