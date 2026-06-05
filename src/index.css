@@ -113,6 +113,29 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .nav-links a:hover { color: var(--brass-deep); }
 @media (max-width: 860px) { .nav-links .hide-mobile { display: none; } }
 
+/* ---------- Lang toggle ---------- */
+.lang-toggle {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  font-size: 0.72rem; letter-spacing: 0.1em; font-weight: 600;
+  color: rgba(244,241,234,0.75); cursor: pointer;
+  transition: color 0.3s;
+  font-family: var(--font-body);
+}
+.nav.scrolled .lang-toggle { color: var(--mist); }
+.lang-toggle .sep { opacity: 0.4; }
+.lang-toggle .active { color: var(--brass); }
+.lang-toggle:hover { color: var(--brass); }
+
+/* ---------- Nav CTA ---------- */
+.btn-nav-cta {
+  background: var(--ivory);
+  color: var(--ink);
+  padding: 0.7rem 1.3rem;
+}
+.btn-nav-cta:hover { background: var(--brass); color: var(--ivory); transform: translateY(-2px); }
+.btn-nav-cta--scrolled { background: var(--ink); color: var(--ivory); }
+.btn-nav-cta--scrolled:hover { background: var(--brass-deep); color: var(--ivory); }
+
 /* ---------- Hero ---------- */
 .hero {
   position: relative; min-height: 100svh;
