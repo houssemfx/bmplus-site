@@ -636,9 +636,10 @@ function CTA({ t }) {
   return (
     <section className="section container">
       <Reveal className="cta">
-        <p className="eyebrow">{t.cta.eyebrow}</p>
+        <span className="cta-mark" aria-hidden="true">+</span>
+        <p className="eyebrow cta-eyebrow"><span>{t.cta.eyebrow}</span></p>
         <h2 className="display">{t.cta.h2}</h2>
-        <p>{t.cta.p}</p>
+        <p className="cta-lead">{t.cta.p}</p>
         <div className="cta-actions">
           <a href={waLink} target="_blank" rel="noreferrer" className="btn btn-wa">
             <IconWA /> {t.cta.btnWa}
