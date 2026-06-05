@@ -210,7 +210,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .head-row h2 { font-size: clamp(2.2rem, 5vw, 4rem); }
 .head-row p { color: var(--mist); max-width: 38ch; }
 .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: clamp(1rem, 2vw, 1.8rem); }
-.card { position: relative; overflow: hidden; border-radius: 4px; background: var(--paper); }
+.card { position: relative; overflow: hidden; border-radius: 16px; background: var(--paper); }
 .card video, .card img { width: 100%; height: 100%; object-fit: cover; transition: transform 1.1s var(--ease); }
 .card:hover video, .card:hover img { transform: scale(1.05); }
 .card .meta {
